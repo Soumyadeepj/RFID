@@ -3,7 +3,7 @@ import streamlit as st
 def deletepage(work):
     st.warning("Warning! It will permanantly delete the item")
 
-    id = work.cell(1,9).value # get the id from I1 cell
+    id = st.session_state.cell # get the id from I1 cell
 
     first_col = work.col_values(1) # get values of first column(A)
 
@@ -14,7 +14,10 @@ def deletepage(work):
     
     def delete_hist(row_indices):
   
-        work.update_cell(row_indices, 4, '')
+        work.update_cell(row_indices, 4, '') #remove history
+        work.update_cell(row_indices, 5, 'Available') #change the status
+        work.update_cell(row_indices, 6, '') #remove last user email
+        work.update_cell(row_indices, 7, '') #remove last user return date
 
     try:
         index = first_col.index(id)
