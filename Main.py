@@ -1,7 +1,11 @@
 import streamlit as st
 from oauth2client.service_account import ServiceAccountCredentials
+import streamlit_authenticator as stauth
+# from streamlit_authenticator.utilities.hasher import Hasher
 from streamlit_card import card
 from annotated_text import annotated_text
+import pickle
+from pathlib import Path
 import time
 import gspread
 import json
@@ -13,7 +17,7 @@ import pandas as pd
 
 st.set_page_config(
     page_title="RFID",
-    page_icon="📙",
+    page_icon="📙"
 )
 
 # doing sceret management
@@ -33,16 +37,15 @@ def get_sheet(database):
         spreadsheet = gc.open('RFID')
         st.session_state['sheet_database'] = spreadsheet
     return st.session_state['sheet_database']
-#st.session_state
-work = get_sheet("mydb").get_worksheet(0)
-first_col = work.col_values(1) # get values of first column(A)
 
-if 'current_page' not in st.session_state:
-    st.session_state['current_page'] = 'main'
+#st.session_state
+work = get_sheet("mydb").worksheet("RFID")
+credential = get_sheet("mydb").worksheet("Credentials")
+first_col = work.col_values(1) # get values of first column(A)
 
 
 def main():
-
+    
     left_column, right_column = st.columns(2)
     with left_column:
         st.image('logo.png')
@@ -53,7 +56,33 @@ def main():
     
     # defining a session state for the cell(id)
     if 'cell' not in st.session_state:
-        st.session_state.cell = None   
+        st.session_state.cell = None  
+         
+    #------- product search -------
+    text_search = st.text_input("Search products", value="") 
+
+    if st.button("Search🔍",key= 'search'):  
+        if text_search:
+            productlist = work.col_values(2)
+            if text_search in productlist:
+                product_index = productlist.index(text_search)
+                info = work.row_values(product_index+1)
+
+                annotated_text(("**📙**",f"{info[2]}"))
+                annotated_text(("**Status :**",f"{info[4]}"))
+                
+                if work.cell(product_index+1,4).value != None:
+
+                    json_string = work.cell(product_index+1,4).value
+                    # Parse the JSON string into a pandas DataFrame
+                    df = pd.DataFrame(json.loads(json_string))
+                    if st.checkbox("**Product History**",key="hist") or st.session_state.hist: 
+                    # st.write("History of the product")
+                        st.dataframe(df, use_container_width=False)
+            else: st.error("Product is not present")            
+        
+                
+        
         
     if st.button("Scan"):
 
@@ -72,8 +101,8 @@ def main():
         work.update_cell(1,9,"") 
 
   
-    if 'name' not in st.session_state:
-        st.session_state.name = ""
+    if 'You' not in st.session_state:
+        st.session_state.You = ""
         
     if st.session_state.cell != None:
         try:
@@ -132,13 +161,13 @@ def main():
 
             else:
                 
-                if st.checkbox("**Want to Issue ?**") or st.session_state.name != "": 
-                    Name = st.text_input("Your name", key ="name")
-                    email = st.text_input("Email id")
-                    date = st.date_input("Expected Return Date",value = None)
-                    remark = st.text_input("Remarks (optional)")
-                    if(Name and email and date):
-                       st.button("submit",key = 'submit',on_click = issue,args= (work,index,Name,email,date,remark,success_slot))
+                if st.checkbox("**Want to Issue ?**") or st.session_state.You != "": 
+                        Name = st.text_input("Your name", key ="You")
+                        email = st.text_input("Email id")
+                        date = st.date_input("Expected Return Date",value = None)
+                        remark = st.text_input("Remarks (optional)")
+                        if(Name and email and date):
+                           st.button("submit",key = 'submit',on_click = issue,args= (work,index,Name,email,date,remark,success_slot))
 
         except ValueError:
             st.success("Scan Successful🎉")
@@ -152,16 +181,51 @@ def main():
 def go2page(whichpage):
     st.session_state['current_page'] = whichpage
     
-with st.sidebar:
-    st.button("Home🏡",on_click=go2page,args=['main'])   
-    st.button("Add➕",on_click=go2page,args=['add'])
-    st.button("Delete➖",on_click=go2page,args=['delete'])
-    st.markdown("[Feedback](http://wa.me/7076523590?text=Hi%20Soumyadeep%20some%20suggestion)")
 
-current_page = st.session_state['current_page']
-if current_page == 'main':
-    main()
-elif current_page == 'add':
-    addpage(work)
-elif current_page == 'delete':
-    deletepage(work)
+#------User Athentication---------
+user = credential.col_values(1)
+usernames = credential.col_values(2)
+password = credential.col_values(3)
+
+hashed_passwords = stauth.Hasher(password).generate()
+    
+authenticator = stauth.Authenticate(user, usernames, hashed_passwords,
+    'RFID', 'abcdef', cookie_expiry_days=30)
+
+users, authentication_status, username = authenticator.login("Login📝", "main")
+
+if authentication_status == False:
+    st.error("Username/password is incorrect")
+
+if authentication_status == None:
+    st.warning("Please enter your username and password")
+    
+if authentication_status: 
+    if 'current_page' not in st.session_state:
+        st.session_state['current_page'] = 'main' 
+          
+    
+    st.sidebar.title(f"Hi {users}")    
+    with st.sidebar:
+        st.button("Home🏡",on_click=go2page,args=['main'])   
+        st.button("Add➕",on_click=go2page,args=['add'])
+        st.button("Delete➖",on_click=go2page,args=['delete'])
+        # to handle cookie error during logout
+        if st.session_state["authentication_status"]:
+            try:
+                authenticator.logout("Logout") 
+            except KeyError:
+                pass  # ignore it
+            except Exception as err:
+                st.error(f'Unexpected exception {err}')
+                raise Exception(err)  # but not this, let's crash the app
+            
+        st.markdown("[Feedback](http://wa.me/7076523590?text=Hi%20Soumyadeep%20some%20suggestion)")
+
+    current_page = st.session_state['current_page']
+    if current_page == 'main':
+        main()
+    elif current_page == 'add':
+        addpage(work)
+    elif current_page == 'delete':
+        deletepage(work)

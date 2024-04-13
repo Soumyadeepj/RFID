@@ -39,5 +39,8 @@ def deletepage(work):
             success_slot.success("History deleted")
             
     except ValueError:
-        st.error("Product is not registered, please register first")    
+        if id == None:
+            st.error("Scan Failed :cry:")
+        else:    
+            st.error("Product is not registered, please register first")    
                 
