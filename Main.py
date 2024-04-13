@@ -76,10 +76,10 @@ def main():
                     json_string = work.cell(product_index+1,4).value
                     # Parse the JSON string into a pandas DataFrame
                     df = pd.DataFrame(json.loads(json_string))
-                    if st.checkbox("**Product History**",key="hist") or st.session_state.hist: 
-                    # st.write("History of the product")
-                        st.dataframe(df, use_container_width=False)
-            else: st.error("Product is not present")            
+                    st.write("Product History")
+                    st.dataframe(df, use_container_width=False)
+            else: st.error("Product is not present")
+        else: st.error("Invalid input😢")                
         
                 
         
@@ -173,7 +173,7 @@ def main():
             st.success("Scan Successful🎉")
             st.warning("Product is not registered, please register first") 
             
-    else:st.error("Scan Failed :cry:") 
+    #else:st.error("Scan Failed :cry:") 
     
     
           
@@ -181,51 +181,69 @@ def main():
 def go2page(whichpage):
     st.session_state['current_page'] = whichpage
     
-
+def logout():
+    try: 
+        # # Clearing session state or redirecting to login
+        for key in st.session_state.keys():
+            del st.session_state[key]
+        st.session_state['current_page'] = 'login'
+    except KeyError:
+        st.error("Already logged out or session not started.")
+    except Exception as err:
+        st.error(f'Unexpected exception {err}')
+        raise
+    
 #------User Athentication---------
-user = credential.col_values(1)
-usernames = credential.col_values(2)
-password = credential.col_values(3)
+def login():
+    user = credential.col_values(1)
+    usernames = credential.col_values(2)
+    password = credential.col_values(3)
 
-hashed_passwords = stauth.Hasher(password).generate()
-    
-authenticator = stauth.Authenticate(user, usernames, hashed_passwords,
-    'RFID', 'abcdef', cookie_expiry_days=30)
+    hashed_passwords = stauth.Hasher(password).generate()
+    if 'authenticator' not in st.session_state:  
+        st.session_state["authenticator"] = stauth.Authenticate(user, usernames, hashed_passwords,
+        'RFID', 'abcdef', cookie_expiry_days=30)
 
-users, authentication_status, username = authenticator.login("Login📝", "main")
+    name, authentication_status, username = st.session_state["authenticator"].login("Login📝", "main")
 
-if authentication_status == False:
-    st.error("Username/password is incorrect")
+    if authentication_status == False:
+        st.error("Username/password is incorrect")
 
-if authentication_status == None:
-    st.warning("Please enter your username and password")
-    
-if authentication_status: 
-    if 'current_page' not in st.session_state:
-        st.session_state['current_page'] = 'main' 
-          
-    
-    st.sidebar.title(f"Hi {users}")    
+    if authentication_status == None:
+        st.warning("Please enter your username and password")
+        
+    if authentication_status: 
+       st.session_state['current_page'] = 'main' 
+       
+if 'current_page' not in st.session_state:
+    st.session_state['current_page'] = 'login'    
+        
+if  st.session_state['current_page'] != 'login':            
+    st.sidebar.title(f"Hi {st.session_state.name}")    #user name
     with st.sidebar:
         st.button("Home🏡",on_click=go2page,args=['main'])   
         st.button("Add➕",on_click=go2page,args=['add'])
         st.button("Delete➖",on_click=go2page,args=['delete'])
         # to handle cookie error during logout
-        if st.session_state["authentication_status"]:
-            try:
-                authenticator.logout("Logout") 
-            except KeyError:
-                pass  # ignore it
-            except Exception as err:
-                st.error(f'Unexpected exception {err}')
-                raise Exception(err)  # but not this, let's crash the app
-            
-        st.markdown("[Feedback](http://wa.me/7076523590?text=Hi%20Soumyadeep%20some%20suggestion)")
-
-    current_page = st.session_state['current_page']
-    if current_page == 'main':
-        main()
-    elif current_page == 'add':
-        addpage(work)
-    elif current_page == 'delete':
-        deletepage(work)
+        # try:
+        #     st.session_state["authenticator"].logout("Logout") 
+        # except KeyError:
+        #         st.session_state['logout'] = True
+        #         st.session_state['name'] = None
+        #         st.session_state['username'] = None
+        #         st.session_state['authentication_status'] = None
+        # except Exception as err:
+        #     st.error(f'Unexpected exception {err}')
+        #     raise Exception(err)  # but not this, let's crash the app
+        st.button("Logout👋",on_click=logout)   
+        st.markdown("[Feedback](http://wa.me/7076523590?text=Hi%20Soumyadeep%20some%20suggestion)")   
+                     
+current_page = st.session_state['current_page']
+if current_page == 'main':
+    main()  
+elif current_page == 'login':
+    login()
+elif current_page == 'add':
+    addpage(work)
+elif current_page == 'delete':
+    deletepage(work)
