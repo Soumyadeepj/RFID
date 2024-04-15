@@ -29,9 +29,9 @@ def issue(work,index,customer_name,email,date,remark,success_slot):
     work.update_cell(index+1, 6,email)
     work.update_cell(index+1, 7,str(date))
     work.update_cell(index+1,5, "Not Available")
-    st.session_state["name"] = ""
-    st.session_state["email"] = ""
-    st.session_state["date"] = None
+    # st.session_state["name"] = ""
+    # st.session_state["email"] = ""
+    # st.session_state["date"] = None
     success_slot.success("🎉")
     
 def ret(work,index,remark,success_slot):
