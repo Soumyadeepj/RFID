@@ -83,22 +83,25 @@ def main():
         
                 
         
-        
-    if st.button("Scan"):
+    left_column, right_column = st.columns(2) 
+
+          
+    if left_column.button("Scan"):
 
         'Scanning in progress...'
 
         # Add a placeholder>>>
         latest_iteration = st.empty()
         bar = st.progress(0)
-
         for i in range(100):
         # Update the progress bar with each iteration.
             latest_iteration.text(f'Progress {i+1}%')
             bar.progress(i + 1)
-            time.sleep(0.05) 
+            time.sleep(1) 
         st.session_state.cell = work.cell(1,9).value   #cell I1 will store the scan id  
         work.update_cell(1,9,"") 
+    
+
 
   
     if 'You' not in st.session_state:
