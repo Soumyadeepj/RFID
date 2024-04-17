@@ -96,7 +96,7 @@ def main():
         # Update the progress bar with each iteration.
             latest_iteration.text(f'Progress {i+1}%')
             bar.progress(i + 1)
-            time.sleep(0.001) 
+            time.sleep(0.05) 
         st.session_state.cell = work.cell(1,9).value   #cell I1 will store the scan id  
         work.update_cell(1,9,"") 
 
