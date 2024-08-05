@@ -14,10 +14,10 @@ def deletepage(work):
     
     def delete_hist(row_indices):
   
-        work.update_cell(row_indices, 4, '') #remove history
-        work.update_cell(row_indices, 5, 'Available') #change the status
-        work.update_cell(row_indices, 6, '') #remove last user email
-        work.update_cell(row_indices, 7, '') #remove last user return date
+        work.update_cell(row_indices, 6, '') #remove history
+        work.update_cell(row_indices, 7, 'Available') #change the status
+        work.update_cell(row_indices, 14, '') #remove last user email
+        work.update_cell(row_indices, 15, '') #remove last user return date
 
     try:
         index = first_col.index(id)

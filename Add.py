@@ -21,10 +21,14 @@ def addpage(work):
             st.write("please enter the product details")
             name =st.text_input("Product name", key="pro_name")
             #id = st.text_input("UID", key="id")
-            details = st.text_input("Details", key="details")
+            location = st.text_input("Location", key="location")
+            left_col, right_col = st.columns(2) 
+            dsr = left_col.text_input("DSR no.", key = "dsr")
+            serial = right_col.text_input("Serial No.", key = "serial")
+            
             success_slot = st.empty()  
-            if name and id and details:
-                    data = [id, name, details,"","Available"]
+            if name and id and location and dsr and serial:
+                    data = [id, name, location, dsr, serial, "","Available"]
                     st.button("submit",on_click = adddata,args= (data,))
                 
         else: st.success("Product registered")            

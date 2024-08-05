@@ -1,13 +1,14 @@
 import streamlit as st 
 from datetime import date
 import json
-def issue(work,index,customer_name,email,date,remark,success_slot):
-    existing_data = work.cell(index+1, 4).value
+def issue(work,index,customer_name,email,contact,date,remark,success_slot):
+    existing_data = work.cell(index+1, 6).value
 
     # Create a dictionary with the new customer information
     new_customer_data = {
         "Name": customer_name,
         "Email": email,
+        "Contact": contact,
         "Issue": str(date.today()),
         "Retrun": str(date),  # Convert date to string if it's not already
         "Remarks": remark
@@ -25,17 +26,17 @@ def issue(work,index,customer_name,email,date,remark,success_slot):
     updated_data = json.dumps(existing_data_list)
 
     # Update the cell with the combined JSON string
-    work.update_cell(index+1, 4, updated_data)
-    work.update_cell(index+1, 6,email)
-    work.update_cell(index+1, 7,str(date))
-    work.update_cell(index+1,5, "Not Available")
+    work.update_cell(index+1, 6, updated_data)
+    work.update_cell(index+1, 14,email)
+    work.update_cell(index+1, 15,str(date))
+    work.update_cell(index+1,7, "Issued")
     # st.session_state["name"] = ""
     # st.session_state["email"] = ""
     # st.session_state["date"] = None
     success_slot.success("🎉")
     
 def ret(work,index,remark,success_slot):
-    existing_data = work.cell(index+1, 4).value
+    existing_data = work.cell(index+1, 6).value
     #print(existing_data)
     existing_data = json.loads(existing_data)  # Parse JSON string to Python list
 
@@ -53,8 +54,8 @@ def ret(work,index,remark,success_slot):
     #print(updated_existing_data)
 
     # Update the cell with the updated JSON string
-    work.update_cell(index + 1, 4, updated_existing_data)
-    work.update_cell(index+1,7, str(date.today()))    
-    work.update_cell(index+1, 5, "Available")
+    work.update_cell(index + 1, 6, updated_existing_data)
+    work.update_cell(index+1,15, str(date.today()))    
+    work.update_cell(index+1, 7, "Available")
     success_slot.success("🎉")
 

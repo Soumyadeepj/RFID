@@ -30,19 +30,17 @@ SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets"
 ]
 
+# st.session_state
+
 def get_sheet(database):
+
     if 'sheet_database' not in st.session_state:
         # Authenticate with the Google Sheets API using the downloaded JSON key file
-        gc = gspread.authorize(ServiceAccountCredentials.from_json_keyfile_dict(credentials_info,SCOPE))
-        spreadsheet = gc.open('RFID')
-        st.session_state['sheet_database'] = spreadsheet
-    return st.session_state['sheet_database']
-
-#st.session_state
-work = get_sheet("mydb").worksheet("RFID")
-credential = get_sheet("mydb").worksheet("Credentials")
-first_col = work.col_values(1) # get values of first column(A)
-
+            gc = gspread.authorize(ServiceAccountCredentials.from_json_keyfile_dict(credentials_info,SCOPE))
+            spreadsheet = gc.open('RFID')
+            st.session_state['sheet_database'] = spreadsheet
+    return st.session_state['sheet_database'] 
+    
 
 def main():
     
@@ -68,12 +66,14 @@ def main():
                 product_index = productlist.index(text_search)
                 info = work.row_values(product_index+1)
 
-                annotated_text(("**📙**",f"{info[2]}"))
-                annotated_text(("**Status :**",f"{info[4]}"))
+                annotated_text(("**Location**",f"{info[2]}"))
+                annotated_text(("**DSR :**",f"{info[3]}"))
+                annotated_text(("**Serial :**",f"{info[4]}"))
+                annotated_text(("**Status :**",f"{info[6]}"))
                 
-                if work.cell(product_index+1,4).value != None:
+                if work.cell(product_index+1,6).value != None:
 
-                    json_string = work.cell(product_index+1,4).value
+                    json_string = work.cell(product_index+1,6).value
                     # Parse the JSON string into a pandas DataFrame
                     df = pd.DataFrame(json.loads(json_string))
                     st.write("Product History")
@@ -134,17 +134,19 @@ def main():
             with cols[1]:
                 st.write("**_________**")
                 annotated_text(("**Id :**" ,f"{values[0]}"))
-                annotated_text(("**📙**",f"{values[2]}"))
-                annotated_text(("**Status :**",f"{values[4]}"))
+                annotated_text(("**Location**",f"{values[2]}"))
+                annotated_text(("**DSR :**",f"{values[3]}"))
+                annotated_text(("**Serial :**",f"{values[4]}"))
+                annotated_text(("**Status :**",f"{values[6]}"))
                 #annotated_text(("**Remarks :**",f"{values[1]}"))
                 st.write("**_________**")
                 
             #print(work.cell(index+1,4).value) 
             
             #creating History chart
-            if work.cell(index+1,4).value != None:
+            if work.cell(index+1,6).value != None:
 
-                json_string = work.cell(index + 1, 4).value
+                json_string = work.cell(index + 1, 6).value
                 # Parse the JSON string into a pandas DataFrame
                 df = pd.DataFrame(json.loads(json_string))
                 if st.checkbox("**Product History**",key="hist") or st.session_state.hist: 
@@ -157,7 +159,7 @@ def main():
             success_slot = st.empty()       
             
             # return & issue 
-            if values[4] == "Not Available":
+            if values[6] == "Issued":
                 if st.checkbox( "**Want to return ?**"):
                     remark = st.text_input("Remarks (optional)")
                     st.button("Proceed" ,key ="proceed",on_click = ret, args = (work,index,remark,success_slot))        
@@ -167,10 +169,11 @@ def main():
                 if st.checkbox("**Want to Issue ?**") or st.session_state.You != "": 
                         Name = st.text_input("Your name", key ="You")
                         email = st.text_input("Email id")
+                        contact = st.text_input("Contact no.")
                         date = st.date_input("Expected Return Date",value = None)
                         remark = st.text_input("Remarks (optional)")
-                        if(Name and email and date):
-                           st.button("submit",key = 'submit',on_click = issue,args= (work,index,Name,email,date,remark,success_slot))
+                        if(Name and email and contact and date):
+                           st.button("submit",key = 'submit',on_click = issue,args= (work,index,Name,email,contact,date,remark,success_slot))
 
         except ValueError:
             st.success("Scan Successful🎉")
@@ -179,8 +182,6 @@ def main():
     #else:st.error("Scan Failed :cry:") 
     
     
-          
-
 def go2page(whichpage):
     st.session_state['current_page'] = whichpage
     
@@ -217,36 +218,45 @@ def login():
         
     if authentication_status: 
        st.session_state['current_page'] = 'main' 
-       
-if 'current_page' not in st.session_state:
-    st.session_state['current_page'] = 'login'    
-        
-if  st.session_state['current_page'] != 'login':            
-    st.sidebar.title(f"Hi {st.session_state.name}")    #user name
-    with st.sidebar:
-        st.button("Home🏡",on_click=go2page,args=['main'])   
-        st.button("Add➕",on_click=go2page,args=['add'])
-        st.button("Delete➖",on_click=go2page,args=['delete'])
-        # to handle cookie error during logout
-        # try:
-        #     st.session_state["authenticator"].logout("Logout") 
-        # except KeyError:
-        #         st.session_state['logout'] = True
-        #         st.session_state['name'] = None
-        #         st.session_state['username'] = None
-        #         st.session_state['authentication_status'] = None
-        # except Exception as err:
-        #     st.error(f'Unexpected exception {err}')
-        #     raise Exception(err)  # but not this, let's crash the app
-        st.button("Logout👋",on_click=logout)   
-        st.markdown("[Feedback](http://wa.me/7076523590?text=Hi%20Soumyadeep%20some%20suggestion)")   
-                     
-current_page = st.session_state['current_page']
-if current_page == 'main':
-    main()  
-elif current_page == 'login':
-    login()
-elif current_page == 'add':
-    addpage(work)
-elif current_page == 'delete':
-    deletepage(work)
+
+#st.session_state
+try :
+    work = get_sheet("mydb").worksheet("RFID")
+    credential = get_sheet("mydb").worksheet("Credentials")
+    first_col = work.col_values(1) # get values of first column(A)
+except: 
+    st.error("Oops! Something Went Wrong⚠️")  
+
+else:
+    if 'current_page' not in st.session_state:
+        st.session_state['current_page'] = 'login'    
+            
+    if  st.session_state['current_page'] != 'login':            
+        st.sidebar.title(f"Hi {st.session_state.name}")    #user name
+        with st.sidebar:
+            st.button("Home🏡",on_click=go2page,args=['main'])   
+            st.button("Add➕",on_click=go2page,args=['add'])
+            st.button("Delete➖",on_click=go2page,args=['delete'])
+            # to handle cookie error during logout
+            # try:
+            #     st.session_state["authenticator"].logout("Logout") 
+            # except KeyError:
+            #         st.session_state['logout'] = True
+            #         st.session_state['name'] = None
+            #         st.session_state['username'] = None
+            #         st.session_state['authentication_status'] = None
+            # except Exception as err:
+            #     st.error(f'Unexpected exception {err}')
+            #     raise Exception(err)  # but not this, let's crash the app
+            st.button("Logout👋",on_click=logout)   
+            st.markdown("[Feedback](http://wa.me/7076523590?text=Hi%20Soumyadeep%20some%20suggestion)")   
+                        
+    current_page = st.session_state['current_page']
+    if current_page == 'main':
+        main()  
+    elif current_page == 'login':
+        login()
+    elif current_page == 'add':
+        addpage(work)
+    elif current_page == 'delete':
+        deletepage(work)
